@@ -1,1 +1,1 @@
-private test repo for demo 1  dst 
+private test repo  commit git head in message for demo 1  dst 
