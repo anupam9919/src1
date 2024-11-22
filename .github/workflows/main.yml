@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main    
-  pull_request:
-    branches:
-      - main    
 
 jobs:
   repo-sync:
@@ -25,13 +22,12 @@ jobs:
         git config --global user.name 'src'
         git config --global user.email 'src.action@github.com'
         
+        # Get the last commit message and code
+        COMMIT_MSG=$(git log -1 --pretty=%B)
+        COMMIT_CODE=$(git rev-parse --short HEAD)
+        
         # Clone destination repository
         git clone https://${GITHUB_TOKEN}@github.com/cssh-it/demo1.git
-        
-        # Clean destination repository
-        cd demo1
-        rm -rf *  # Remove all files except .git
-        cd ..
         
         # Copy files from source to destination
         rsync -av \
@@ -43,5 +39,5 @@ jobs:
         # Commit and push changes
         cd demo1
         git add -A
-        git commit -m "Sync from source repository - Commit: ${GITHUB_SHA}" || echo "No changes to commit"
+        git commit -m "[$COMMIT_CODE] $COMMIT_MSG" || echo "No changes to commit"
         git push origin main
