@@ -3,10 +3,10 @@ name: Sync Repositories
 on:
   push:
     branches:
-      - main    # Triggers on any push to main branch
+      - main    
   pull_request:
     branches:
-      - main    # Optional: Also triggers when PRs are made to main
+      - main    
 
 jobs:
   repo-sync:
@@ -21,18 +21,30 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.SYNC_TOKEN }}
       run: |
+        # Configure git
         git config --global user.name 'src'
         git config --global user.email 'src.action@github.com'
         
+        # Get current files
+        SOURCE_FILES=$(ls -A | grep -v '.git' | grep -v '.github')
+        
         # Clone destination repository
-        git clone https://${GITHUB_TOKEN}@github.com/cssh-it/demo1.git destination_repo
+        git clone https://${GITHUB_TOKEN}@github.com/cssh-it/demo1.git
+        cd demo1
         
-        # Copy all files (excluding .git)
-        rsync -av --exclude='.git' ./ destination_repo/
+        # Remove existing files (except .git)
+        git rm -rf .
+        git clean -fdx
         
-        # Setup and push
-        cd destination_repo
+        # Copy files from source
+        cd ..
+        rsync -av \
+          --exclude='.git' \
+          --exclude='.github' \
+          ./ demo1/
+        
+        # Commit and push
+        cd demo1
         git add .
         git commit -m "Sync from source repository - Commit: ${GITHUB_SHA}"
-        git branch -M main
-        git push -u origin main
+        git push origin main
