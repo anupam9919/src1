@@ -1,0 +1,41 @@
+name: Build and Deploy to IIS
+
+on:
+  push:
+    branches:
+      - production  # Trigger workflow on production branch push
+
+jobs:
+  build-and-deploy:
+    runs-on: self-hosted  # Use your self-hosted runner
+
+    steps:
+      # Step 1: Check out the code
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+
+      # Step 3: Restore NuGet Packages
+      - name: Restore NuGet Packages
+        run: nuget restore ./ToothTech.sln
+
+      # Step 4: Build and Publish Solution
+      - name: Build and Publish Solution
+        run: |
+          msbuild ./ToothTech.sln /p:Configuration=Release /p:DeployOnBuild=true /p:PublishProfile=LocalPublish
+          $PublishFolder = "G:\published-site"
+          mkdir $PublishFolder -Force
+          msbuild ./ToothTech.sln /p:WebPublishMethod=FileSystem /p:PublishUrl=$PublishFolder /p:Configuration=Release
+
+      # Step 5: Deploy to IIS
+      - name: Deploy to IIS
+        run: |
+          $DestinationPath = "C:\inetpub\wwwroot\smilesync"
+          $SourcePath = "G:\published-site"
+          Write-Host "Stopping IIS App Pool..."
+          Stop-WebAppPool -Name "smilesync"
+          Start-Sleep -Seconds 5
+          Write-Host "Copying published files to IIS folder..."
+          Copy-Item -Path "$SourcePath\*" -Destination $DestinationPath -Recurse -Force
+          Write-Host "Starting IIS App Pool..."
+          Start-WebAppPool -Name "smilesync"
